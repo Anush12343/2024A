@@ -67,10 +67,23 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_D1681FBFFEA84320986AA1AA863DD2F2 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_AA8CB18083B9446AA5DB0D8424BFC6F7 }}
 
+      - name: Ensure app is running before deploy
+        run: |
+          az webapp start \
+            --resource-group class24a-anusharan_bhattarai \
+            --name cloud-anusharan-bhattarai
+        continue-on-error: true
+
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'cloud-anusharan-bhattarai'
           slot-name: 'Production'
-          
+
+      - name: Ensure app is running after deployment
+        run: |
+          az webapp start \
+            --resource-group class24a-anusharan_bhattarai \
+            --name cloud-anusharan-bhattarai
+        continue-on-error: true

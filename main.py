@@ -1,5 +1,6 @@
 
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from pydantic import BaseModel, Field
@@ -26,10 +27,21 @@ class Query(BaseModel):
     last_name: str
     phone_number: str
     query: str
+    
     class Config:
         orm_mode = True
+        from_attributes = True
 
 app = FastAPI()
+
+# Enable CORS for frontend integration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def get_db():
     db = SessionLocal()
@@ -38,14 +50,22 @@ def get_db():
     finally:
         db.close()
 
-# Health check endpoint
+# Health check endpoints
 @app.get("/")
 def health_check():
     return {"status": "ok"}
 
+@app.get("/health")
+def health_check_alt():
+    return {"status": "ok"}
+
+@app.get("/api/health")
+def health_check_api():
+    return {"status": "ok"}
+
 @app.post("/queries", response_model=Query)
 def create_query(query: Query, db: Session = Depends(get_db)):
-    db_query = QueryModel(**query.dict())
+    db_query = QueryModel(**query.model_dump() if hasattr(query, "model_dump") else query.dict())
     db.add(db_query)
     db.commit()
     db.refresh(db_query)
@@ -54,6 +74,6 @@ def create_query(query: Query, db: Session = Depends(get_db)):
 @app.get("/queries", response_model=List[Query])
 def get_queries(db: Session = Depends(get_db)):
     queries = db.query(QueryModel).all()
-    if not queries:
-        raise HTTPException(status_code=404, detail="No queries found")
+    # Return empty list instead of 404 so frontend shows the empty state correctly
     return queries
+
